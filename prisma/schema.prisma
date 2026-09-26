@@ -1,13 +1,150 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// 1. Configuration
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 2. Enums
+enum BookmarkType {
+  COURSE
+  NOTE
+  LESSON
+  AI_SUMMARY
+}
+
+// 3. User Table
+model User {
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  password          String
+  phone             String?
+  gender            String?
+  isProfileComplete Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  enrollments       Enrollment[]
+  reviews           Review[]
+  bookmarks         Bookmark[]
+}
+
+// 4. Mentor & Experience
+model Mentor {
+  id            String   @id @default(uuid())
+  name          String
+  title         String
+  avatarUrl     String?
+  bio           String?
+  rating        Float    @default(0.0)
+  studentsCount Int      @default(0)
+  reviewsCount  Int      @default(0)
+  
+  experiences   MentorExperience[]
+  courses       Course[]
+}
+
+model MentorExperience {
+  id        String @id @default(uuid())
+  role      String
+  company   String
+  period    String
+  logoUrl   String
+
+  mentorId  String
+  mentor    Mentor @relation(fields: [mentorId], references: [id])
+}
+
+// 5. Category
+model Category {
+  id      String   @id @default(uuid())
+  name    String   @unique
+  icon    String
+  color   String
+  
+  courses Course[]
+}
+
+// 6. Course Table
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  about       String?
+  price       Float    @default(0.0)
+  isFree      Boolean  @default(false)
+  thumbnail   String
+  rating      Float    @default(0.0)
+  
+  mentorId    String
+  categoryId  String
+
+  mentor      Mentor     @relation(fields: [mentorId], references: [id])
+  category    Category   @relation(fields: [categoryId], references: [id])
+  
+  lessons     Lesson[]
+  reviews     Review[]
+  enrollments Enrollment[]
+}
+
+// 7. Lesson Table
+model Lesson {
+  id          String   @id @default(uuid())
+  sequence    Int
+  title       String
+  duration    String
+  isPreview   Boolean  @default(false)
+  description String?
+  videoUrl    String
+
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+}
+
+// 8. Review Table
+model Review {
+  id          String   @id @default(uuid())
+  rating      Float
+  comment     String
+  createdAt   DateTime @default(now())
+
+  userId      String
+  courseId    String
+
+  user        User     @relation(fields: [userId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id])
+}
+
+// 9. Enrollment (Bridge Table)
+model Enrollment {
+  id               String   @id @default(uuid())
+  userId           String
+  courseId         String
+  completedLessons Int      @default(0)
+  enrolledAt       DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id])
+  course           Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+// 10. Bookmark Table
+model Bookmark {
+  id          String       @id @default(uuid())
+  type        BookmarkType
+  targetId    String
+  title       String
+  subtitle    String
+  imageUrl    String?
+  category    String?
+  price       String?
+  rating      String?
+  createdAt   DateTime     @default(now())
+
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
 }
