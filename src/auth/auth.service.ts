@@ -8,6 +8,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterStep1Dto } from './dto/register-step1.dto.js';
+import { CompleteProfileDto } from './dto/complete-profile.dto.js';
+import { LoginDto } from './dto/login.dto.js';
+import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
+import { VerifyOtpDto } from './dto/verify-otp.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -99,6 +104,188 @@ export class AuthService {
             return tokens;
         } catch {
             throw new UnauthorizedException('Invalid or expired refresh token');
+        }
+    }
+
+    async completeProfile(userId: string, dto: CompleteProfileDto) {
+        const updatedUser = await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                name: dto.name,
+                phone: dto.phone,
+                gender: dto.gender,
+                image: dto.image,
+                isProfileComplete: true,
+            },
+        });
+
+        return {
+            message: 'Profile completed successfully',
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                gender: updatedUser.gender,
+                image: updatedUser.image,
+                isProfileComplete: updatedUser.isProfileComplete,
+            },
+        };
+    }
+
+    async login(dto: LoginDto) {
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
+
+        const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
+
+        const tokens = await this.generateTokens(user.id, user.email);
+        await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+
+        return {
+            message: 'Login successful',
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                gender: user.gender,
+                image: user.image,
+                isProfileComplete: user.isProfileComplete,
+            },
+            ...tokens,
+        };
+    }
+
+    async logout(userId: string) {
+        await this.prisma.user.updateMany({
+            where: {
+                id: userId,
+                refreshToken: { not: null },
+            },
+            data: {
+                refreshToken: null,
+            },
+        });
+
+        return { message: 'Logged out successfully' };
+    }
+
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                gender: true,
+                image: true,
+                isProfileComplete: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        return user;
+    }
+
+    async forgotPassword(dto: ForgotPasswordDto) {
+        const user = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (!user) {
+            throw new BadRequestException('User with this email does not exist');
+        }
+
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+        const resetToken = await this.jwtService.signAsync(
+            { email: user.email, otp },
+            {
+                secret: process.env.JWT_RESET_SECRET || 'reset-otp-secret-key',
+                expiresIn: '5m',
+            },
+        );
+
+        return {
+            message: 'OTP generated successfully',
+            devOtp: otp,
+            resetToken,
+        };
+    }
+
+    async verifyOtp(dto: VerifyOtpDto) {
+        try {
+            const payload = await this.jwtService.verifyAsync(dto.resetToken, {
+                secret: process.env.JWT_RESET_SECRET || 'reset-otp-secret-key',
+            });
+
+            if (payload.otp !== dto.otp) {
+                throw new BadRequestException('Invalid OTP');
+            }
+
+            const verificationToken = await this.jwtService.signAsync(
+                { email: payload.email, verified: true },
+                {
+                    secret: process.env.JWT_RESET_SECRET || 'reset-otp-secret-key',
+                    expiresIn: '10m',
+                },
+            );
+
+            return {
+                message: 'OTP verified successfully',
+                verificationToken,
+            };
+        } catch (error: any) {
+            if (error.name === 'TokenExpiredError') {
+                throw new BadRequestException('OTP has expired');
+            }
+            throw new BadRequestException(error.message || 'Invalid token or OTP');
+        }
+    }
+
+    async resetPassword(dto: ResetPasswordDto) {
+        try {
+            const payload = await this.jwtService.verifyAsync(dto.verificationToken, {
+                secret: process.env.JWT_RESET_SECRET || 'reset-otp-secret-key',
+            });
+
+            if (!payload.verified) {
+                throw new BadRequestException('Unauthorized password reset request');
+            }
+
+            const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+            await this.prisma.user.update({
+                where: { email: payload.email },
+                data: {
+                    password: hashedPassword,
+                    refreshToken: null,
+                },
+            });
+
+            return {
+                message: 'Password reset successful. You can now login with your new password.',
+            };
+        } catch (error: any) {
+            if (error.name === 'TokenExpiredError') {
+                throw new BadRequestException('Session expired. Please request OTP again.');
+            }
+            throw new BadRequestException('Invalid or expired verification session');
         }
     }
 }
