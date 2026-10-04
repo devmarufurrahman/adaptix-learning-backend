@@ -16,6 +16,12 @@ enum BookmarkType {
   AI_SUMMARY
 }
 
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
 // 3. User Table
 model User {
   id                String     @id @default(uuid())
@@ -26,6 +32,7 @@ model User {
   gender            String?
   image             String?   
   isProfileComplete Boolean    @default(false)
+  role              UserRole  @default(STUDENT)
   refreshToken      String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -150,3 +157,4 @@ model Bookmark {
   userId      String
   user        User         @relation(fields: [userId], references: [id])
 }
+
