@@ -70,12 +70,15 @@ model MentorExperience {
 
 // 5. Category
 model Category {
-  id      String   @id @default(uuid())
-  name    String   @unique
-  icon    String
-  color   String
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
-  courses Course[]
+  courses     Course[]
 }
 
 // 6. Course Table
