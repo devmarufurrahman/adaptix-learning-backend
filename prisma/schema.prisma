@@ -101,23 +101,41 @@ model Course {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  lessons     Lesson[]
+  sections    Section[]
   reviews     Review[]
   enrollments Enrollment[]
 }
 
-// 7. Lesson Table
-model Lesson {
-  id          String   @id @default(uuid())
-  sequence    Int
-  title       String
-  duration    String
-  isPreview   Boolean  @default(false)
-  description String?
-  videoUrl    String
+// 7. Section & Lesson Tables
+model Section {
+  id        String   @id @default(uuid())
+  title     String
+  order     Int      @default(0)
+  
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  lessons   Lesson[]
 
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  title     String
+  content   String?  // Optional text content
+  videoUrl  String?
+  pdfUrl    String?
+  duration  Int?     // Duration in minutes or seconds
+  isPreview Boolean  @default(false) // True if it's a free preview video
+  order     Int      @default(0)
+
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // 8. Review Table
