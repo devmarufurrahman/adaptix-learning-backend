@@ -9,6 +9,7 @@ import { CategoriesModule } from './categories/categories.module.js';
 import { CoursesModule } from './courses/courses.module.js';
 import { SectionsModule } from './sections/sections.module.js';
 import { LessonsModule } from './lessons/lessons.module.js';
+import { MediaModule } from './media/media.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -28,6 +29,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     CoursesModule,
     SectionsModule,
     LessonsModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
