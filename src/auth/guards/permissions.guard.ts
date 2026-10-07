@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PERMISSIONS_KEY, RequiredPermission } from '../decorators/permissions.decorator.js';
+import { Permission } from '@prisma/client';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -23,23 +24,15 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user || !user.roleId) {
+    if (!user || !user.role || !user.role.permissions) {
       throw new ForbiddenException('User identity or role not found');
     }
 
-    // Fetch the role and its permissions dynamically from the database
-    const role = await this.prisma.role.findUnique({
-      where: { id: user.roleId },
-      include: { permissions: true },
-    });
-
-    if (!role) {
-      throw new ForbiddenException('Role not found in the system');
-    }
+    const role = user.role;
 
     // Check for SUPER_ADMIN access (MANAGE ALL)
     const isSuperAdmin = role.permissions.some(
-      (p) => p.module === 'ALL' && p.action === 'MANAGE'
+      (p: Permission) => p.module === 'ALL' && p.action === 'MANAGE'
     );
 
     if (isSuperAdmin) {
@@ -48,7 +41,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Check for the specific required permission
     const hasPermission = role.permissions.some(
-      (p) => p.module === requiredPermission.module && p.action === requiredPermission.action
+      (p: Permission) => p.module === requiredPermission.module && p.action === requiredPermission.action
     );
 
     if (!hasPermission) {

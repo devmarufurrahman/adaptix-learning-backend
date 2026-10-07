@@ -33,10 +33,11 @@ export class MediaService {
 
       await this.s3Client.send(command);
 
-      const publicUrl = process.env.R2_PUBLIC_URL as string;
+      const publicUrl = process.env.R2_PUBLIC_DOMAIN || process.env.R2_PUBLIC_URL || '';
       return `${publicUrl.replace(/\/$/, '')}/${key}`;
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to upload file to R2');
+    } catch (error: any) {
+      console.error('R2 Upload Error Details:', error);
+      throw new InternalServerErrorException(`R2 Upload Failed: ${error.message || 'Unknown error'}`);
     }
   }
 }
