@@ -46,4 +46,33 @@ export class MediaController {
       url,
     };
   }
+
+  @Post('upload/video')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('MEDIA', 'CREATE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload a video to Cloudflare Stream (Instructor/Admin only)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async uploadVideo(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No video file uploaded');
+    }
+
+    if (!file.mimetype.startsWith('video/')) {
+      throw new BadRequestException('Only video files are allowed for this endpoint');
+    }
+
+    return this.mediaService.uploadVideo(file);
+  }
 }
