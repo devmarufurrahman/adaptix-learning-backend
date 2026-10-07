@@ -4,9 +4,8 @@ import { LessonsService } from './lessons.service.js';
 import { CreateLessonDto } from './dto/create-lesson.dto.js';
 import { UpdateLessonDto } from './dto/update-lesson.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
-import { UserRole } from '@prisma/client';
+import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
 
 @ApiTags('Lessons')
 @ApiBearerAuth('JWT-auth')
@@ -15,8 +14,8 @@ export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'CREATE')
   @ApiOperation({ summary: 'Create a new lesson' })
   create(@Body() createLessonDto: CreateLessonDto) {
     return this.lessonsService.create(createLessonDto);
@@ -37,16 +36,16 @@ export class LessonsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'UPDATE')
   @ApiOperation({ summary: 'Update a lesson' })
   update(@Param('id') id: string, @Body() updateLessonDto: UpdateLessonDto) {
     return this.lessonsService.update(id, updateLessonDto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'UPDATE')
   @ApiOperation({ summary: 'Delete a lesson' })
   remove(@Param('id') id: string) {
     return this.lessonsService.remove(id);

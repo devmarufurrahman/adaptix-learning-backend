@@ -1,11 +1,10 @@
 import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Query, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { MediaService } from './media.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
+import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
 import 'multer';
 
 @ApiTags('Media')
@@ -15,8 +14,8 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('MEDIA', 'CREATE')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload a file to R2 storage (Instructor/Admin only)' })
   @ApiConsumes('multipart/form-data')

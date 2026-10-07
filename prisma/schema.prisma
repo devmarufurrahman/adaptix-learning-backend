@@ -16,11 +16,7 @@ enum BookmarkType {
   AI_SUMMARY
 }
 
-enum UserRole {
-  STUDENT
-  INSTRUCTOR
-  ADMIN
-}
+
 
 // 3. User Table
 model User {
@@ -32,7 +28,8 @@ model User {
   gender            String?
   image             String?   
   isProfileComplete Boolean    @default(false)
-  role              UserRole  @default(STUDENT)
+  roleId            String
+  role              Role       @relation(fields: [roleId], references: [id])
   refreshToken      String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -181,5 +178,27 @@ model Bookmark {
 
   userId      String
   user        User         @relation(fields: [userId], references: [id])
+}
+
+// 11. Role & Permission Models
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // SUPER_ADMIN, ADMIN, INSTRUCTOR, STUDENT
+  description String?
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  module    String   // e.g., COURSE, CATEGORY, MEDIA, USER_MANAGEMENT
+  action    String   // e.g., CREATE, READ, UPDATE, DELETE, MANAGE
+  
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([module, action, roleId]) // Prevent duplicate permissions for a role
 }
 

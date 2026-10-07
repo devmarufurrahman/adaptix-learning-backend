@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ConflictException, ForbiddenException, B
 import { CreateCourseDto } from './dto/create-course.dto.js';
 import { UpdateCourseDto } from './dto/update-course.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class CoursesService {
@@ -81,11 +80,18 @@ export class CoursesService {
     return course;
   }
 
-  async update(id: string, updateCourseDto: UpdateCourseDto, instructorId: string, role: UserRole) {
+  async update(id: string, updateCourseDto: UpdateCourseDto, userId: string) {
     const course = await this.findOne(id); // Throws if not found
 
-    // Permission check: only ADMIN or the specific instructor
-    if (role !== UserRole.ADMIN && course.instructorId !== instructorId) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: { include: { permissions: true } } }
+    });
+
+    const isSuperAdmin = user?.role?.permissions?.some(p => p.module === 'ALL' && p.action === 'MANAGE');
+
+    // Permission check: only SUPER_ADMIN or the specific instructor
+    if (!isSuperAdmin && course.instructorId !== userId) {
       throw new ForbiddenException('You do not have permission to update this course');
     }
 
@@ -124,11 +130,18 @@ export class CoursesService {
     });
   }
 
-  async remove(id: string, instructorId: string, role: UserRole) {
+  async remove(id: string, userId: string) {
     const course = await this.findOne(id);
 
-    // Permission check: only ADMIN or the specific instructor
-    if (role !== UserRole.ADMIN && course.instructorId !== instructorId) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: { include: { permissions: true } } }
+    });
+
+    const isSuperAdmin = user?.role?.permissions?.some(p => p.module === 'ALL' && p.action === 'MANAGE');
+
+    // Permission check: only SUPER_ADMIN or the specific instructor
+    if (!isSuperAdmin && course.instructorId !== userId) {
       throw new ForbiddenException('You do not have permission to delete this course');
     }
 

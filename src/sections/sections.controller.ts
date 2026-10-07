@@ -4,9 +4,8 @@ import { SectionsService } from './sections.service.js';
 import { CreateSectionDto } from './dto/create-section.dto.js';
 import { UpdateSectionDto } from './dto/update-section.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
-import { UserRole } from '@prisma/client';
+import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
 
 @ApiTags('Sections')
 @ApiBearerAuth('JWT-auth')
@@ -15,8 +14,8 @@ export class SectionsController {
   constructor(private readonly sectionsService: SectionsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'CREATE')
   @ApiOperation({ summary: 'Create a new section' })
   create(@Body() createSectionDto: CreateSectionDto) {
     return this.sectionsService.create(createSectionDto);
@@ -44,16 +43,16 @@ export class SectionsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'UPDATE')
   @ApiOperation({ summary: 'Update a section' })
   update(@Param('id') id: string, @Body() updateSectionDto: UpdateSectionDto) {
     return this.sectionsService.update(id, updateSectionDto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('COURSE', 'UPDATE')
   @ApiOperation({ summary: 'Delete a section' })
   remove(@Param('id') id: string) {
     return this.sectionsService.remove(id);

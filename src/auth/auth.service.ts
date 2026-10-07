@@ -57,11 +57,20 @@ export class AuthService {
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
+        const studentRole = await this.prisma.role.findUnique({
+            where: { name: 'STUDENT' }
+        });
+
+        if (!studentRole) {
+            throw new BadRequestException('Default STUDENT role not found in system');
+        }
+
         const newUser = await this.prisma.user.create({
             data: {
                 email: dto.email,
                 password: hashedPassword,
                 isProfileComplete: false,
+                roleId: studentRole.id,
             },
         });
 

@@ -1,13 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import { CategoriesService } from './categories.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../auth/guards/roles.guard.js';
-import { Roles } from '../auth/decorators/roles.decorator.js';
-
+import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
 @ApiTags('Categories')
 @ApiBearerAuth('JWT-auth')
 @Controller('categories')
@@ -15,8 +13,8 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Create a new category (Admin only)' })
   @ApiCreatedResponse({ description: 'The category has been successfully created.' })
   create(@Body() createCategoryDto: CreateCategoryDto) {
@@ -40,8 +38,8 @@ export class CategoriesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Update a category (Admin only)' })
   @ApiOkResponse({ description: 'The category has been successfully updated.' })
   update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
@@ -49,8 +47,8 @@ export class CategoriesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Delete a category (Admin only)' })
   @ApiOkResponse({ description: 'The category has been successfully deleted.' })
   remove(@Param('id') id: string) {
