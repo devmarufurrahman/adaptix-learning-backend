@@ -10,7 +10,6 @@ import { CoursesModule } from './courses/courses.module.js';
 import { SectionsModule } from './sections/sections.module.js';
 import { LessonsModule } from './lessons/lessons.module.js';
 import { MediaModule } from './media/media.module.js';
-import { AdminUsersModule } from './admin-users/admin-users.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -31,7 +30,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     SectionsModule,
     LessonsModule,
     MediaModule,
-    AdminUsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

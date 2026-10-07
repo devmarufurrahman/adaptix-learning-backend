@@ -49,12 +49,6 @@ export class AuthController {
         return this.authService.logout(req.user.id);
     }
 
-    @ApiBearerAuth('JWT-auth')
-    @UseGuards(JwtAuthGuard)
-    @Get('me')
-    getMe(@Req() req: any) {
-        return this.authService.getMe(req.user.id);
-    }
 
     @Post('forgot-password')
     @HttpCode(HttpStatus.OK)

@@ -188,28 +188,6 @@ export class AuthService {
         return { message: 'Logged out successfully' };
     }
 
-    async getMe(userId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                gender: true,
-                image: true,
-                isProfileComplete: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        });
-
-        if (!user) {
-            throw new UnauthorizedException('User not found');
-        }
-
-        return user;
-    }
 
     async forgotPassword(dto: ForgotPasswordDto) {
         const user = await this.prisma.user.findUnique({
