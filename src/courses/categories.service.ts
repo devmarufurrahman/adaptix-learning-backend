@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -26,12 +26,12 @@ export class CategoriesService {
     });
 
     if (existingCategory) {
-      throw new ConflictException('Category with this name already exists');
+      throw new ConflictException('Category with this name or slug already exists');
     }
 
     return this.prisma.category.create({
       data: {
-        ...createCategoryDto,
+        name: createCategoryDto.name,
         slug,
       },
     });
@@ -39,6 +39,11 @@ export class CategoriesService {
 
   async findAll() {
     return this.prisma.category.findMany({
+      include: {
+        _count: {
+          select: { courses: true },
+        },
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -46,6 +51,18 @@ export class CategoriesService {
   async findOne(id: string) {
     const category = await this.prisma.category.findUnique({
       where: { id },
+      include: {
+        courses: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            price: true,
+            thumbnail: true,
+            createdAt: true,
+          },
+        },
+      },
     });
 
     if (!category) {
@@ -56,13 +73,13 @@ export class CategoriesService {
   }
 
   async update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    await this.findOne(id); // Throws if not found
+    await this.findOne(id);
 
     let slug: string | undefined;
 
     if (updateCategoryDto.name) {
       slug = this.generateSlug(updateCategoryDto.name);
-      
+
       const conflict = await this.prisma.category.findFirst({
         where: {
           id: { not: id },
@@ -74,24 +91,30 @@ export class CategoriesService {
       });
 
       if (conflict) {
-        throw new ConflictException('Another category with this name already exists');
+        throw new ConflictException('Another category with this name or slug already exists');
       }
     }
 
     return this.prisma.category.update({
       where: { id },
       data: {
-        ...updateCategoryDto,
+        ...(updateCategoryDto.name && { name: updateCategoryDto.name }),
         ...(slug && { slug }),
       },
     });
   }
 
   async remove(id: string) {
-    await this.findOne(id); // Throws if not found
+    await this.findOne(id);
 
-    // Note: If you want to check if courses are attached to prevent deletion,
-    // you would add a check here against this.prisma.course.findFirst({ where: { categoryId: id }})
+    const coursesCount = await this.prisma.course.count({
+      where: { categoryId: id },
+    });
+
+    if (coursesCount > 0) {
+      throw new BadRequestException('Cannot delete category with associated courses');
+    }
+
     return this.prisma.category.delete({
       where: { id },
     });

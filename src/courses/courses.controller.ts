@@ -6,13 +6,14 @@ import { UpdateCourseDto } from './dto/update-course.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
+
 @ApiTags('Courses')
-@ApiBearerAuth('JWT-auth')
 @Controller('courses')
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Post()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('COURSE', 'CREATE')
   @ApiOperation({ summary: 'Create a new course (Instructor/Admin only)' })
@@ -22,22 +23,21 @@ export class CoursesController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Retrieve all courses' })
+  @ApiOperation({ summary: 'Retrieve all courses (Public)' })
   @ApiOkResponse({ description: 'List of all courses.' })
   findAll() {
     return this.coursesService.findAll();
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Retrieve a course by ID' })
+  @ApiOperation({ summary: 'Retrieve a course by ID (Public)' })
   @ApiOkResponse({ description: 'The found course.' })
   findOne(@Param('id') id: string) {
     return this.coursesService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('COURSE', 'UPDATE')
   @ApiOperation({ summary: 'Update a course (Instructor/Admin only)' })
@@ -51,6 +51,7 @@ export class CoursesController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('COURSE', 'DELETE')
   @ApiOperation({ summary: 'Delete a course (Instructor/Admin only)' })

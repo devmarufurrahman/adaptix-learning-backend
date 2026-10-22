@@ -6,13 +6,14 @@ import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from '../auth/guards/permissions.guard.js';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator.js';
+
 @ApiTags('Categories')
-@ApiBearerAuth('JWT-auth')
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Create a new category (Admin only)' })
@@ -22,22 +23,21 @@ export class CategoriesController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Retrieve all categories' })
+  @ApiOperation({ summary: 'Retrieve all categories (Public)' })
   @ApiOkResponse({ description: 'List of all categories.' })
   findAll() {
     return this.categoriesService.findAll();
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Retrieve a category by ID' })
+  @ApiOperation({ summary: 'Retrieve a category by ID (Public)' })
   @ApiOkResponse({ description: 'The found category.' })
   findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Update a category (Admin only)' })
@@ -47,6 +47,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('CATEGORY', 'MANAGE')
   @ApiOperation({ summary: 'Delete a category (Admin only)' })

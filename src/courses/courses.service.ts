@@ -65,10 +65,18 @@ export class CoursesService {
       where: { id },
       include: {
         category: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, slug: true },
         },
         instructor: {
           select: { id: true, name: true, email: true },
+        },
+        sections: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+            },
+          },
         },
       },
     });

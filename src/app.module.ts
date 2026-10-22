@@ -5,11 +5,9 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
-import { CategoriesModule } from './categories/categories.module.js';
 import { CoursesModule } from './courses/courses.module.js';
-import { SectionsModule } from './sections/sections.module.js';
-import { LessonsModule } from './lessons/lessons.module.js';
 import { MediaModule } from './media/media.module.js';
+import { EnrollmentsModule } from './enrollments/enrollments.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -25,11 +23,9 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     PrismaModule,
     UsersModule,
     AuthModule,
-    CategoriesModule,
     CoursesModule,
-    SectionsModule,
-    LessonsModule,
     MediaModule,
+    EnrollmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,6 +16,19 @@ enum BookmarkType {
   AI_SUMMARY
 }
 
+enum OrderStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  REVOKED
+}
+
 
 
 // 3. User Table
@@ -35,9 +48,11 @@ model User {
   updatedAt         DateTime   @updatedAt
 
   enrollments       Enrollment[]
+  orders            Order[]
   reviews           Review[]
   bookmarks         Bookmark[]
   courses           Course[]
+  lessonProgress    LessonProgress[]
 }
 
 // 4. Mentor & Experience
@@ -70,37 +85,33 @@ model Category {
   id          String   @id @default(uuid())
   name        String   @unique
   slug        String   @unique
-  description String?
-  imageUrl    String?
+  courses     Course[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  courses     Course[]
 }
 
 // 6. Course Table
 model Course {
-  id           String   @id @default(uuid())
-  title        String
-  slug         String   @unique
-  description  String?
-  price        Float    @default(0.0)
-  thumbnailUrl String?
-  isPublished  Boolean  @default(false)
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  description String?   @db.Text
+  price       Float     @default(0)
+  thumbnail   String?   // Cloudflare R2 URL
   
-  // Relations
-  categoryId   String
-  category     Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
   
   instructorId String
-  instructor   User     @relation(fields: [instructorId], references: [id])
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  instructor  User      @relation(fields: [instructorId], references: [id])
+  
   sections    Section[]
   reviews     Review[]
   enrollments Enrollment[]
+  orders      Order[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // 7. Section & Lesson Tables
@@ -113,26 +124,43 @@ model Section {
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   lessons   Lesson[]
-
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Lesson {
-  id        String   @id @default(uuid())
-  title     String
-  content   String?  // Optional text content
-  videoUrl  String?
-  pdfUrl    String?
-  duration  Int?     // Duration in minutes or seconds
-  isPreview Boolean  @default(false) // True if it's a free preview video
-  order     Int      @default(0)
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  videoUid    String?  // Cloudflare Stream UID
+  pdfNotesUrl String?  // Cloudflare R2 URL
+  order       Int      @default(0)
+  
+  sectionId   String
+  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  
+  progresses  LessonProgress[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
-  sectionId String
-  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+model LessonProgress {
+  id          String   @id @default(uuid())
+  isCompleted Boolean  @default(false)
+  watchTime   Int      @default(0) // Stored in seconds
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId]) // A user has only one progress record per lesson
 }
 
 // 8. Review Table
@@ -149,18 +177,39 @@ model Review {
   course      Course   @relation(fields: [courseId], references: [id])
 }
 
-// 9. Enrollment (Bridge Table)
+// 9. Orders & Enrollments
+model Order {
+  id            String      @id @default(uuid())
+  amount        Float
+  transactionId String?     @unique
+  gateway       String?     // e.g., SSLCOMMERZ, STRIPE, MANUAL
+  status        OrderStatus @default(PENDING)
+  
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  
+  courseId      String
+  course        Course      @relation(fields: [courseId], references: [id])
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
 model Enrollment {
-  id               String   @id @default(uuid())
-  userId           String
-  courseId         String
-  completedLessons Int      @default(0)
-  enrolledAt       DateTime @default(now())
+  id          String           @id @default(uuid())
+  progress    Float            @default(0) // Percentage of course completed
+  status      EnrollmentStatus @default(ACTIVE)
+  
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  
+  courseId    String
+  course      Course           @relation(fields: [courseId], references: [id])
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  user             User     @relation(fields: [userId], references: [id])
-  course           Course   @relation(fields: [courseId], references: [id])
-
-  @@unique([userId, courseId])
+  @@unique([userId, courseId]) // A user can only enroll in a specific course once
 }
 
 // 10. Bookmark Table
